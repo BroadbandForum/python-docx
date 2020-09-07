@@ -85,6 +85,30 @@ class Paragraph(Parented):
         return ParagraphFormat(self._element)
 
     @property
+    def items(self):
+        """
+        Sequence of all child items.
+        """
+        items = []
+        for elem in self._element:
+            # XXX want a factory method
+            from ..oxml.ns import qn
+            cls_map = {qn('w:r'): Run, qn('w:fldSimple'): FldSimple,
+                       qn('w:bookmarkStart'): BookmarkStart,
+                       qn('w:bookmarkEnd'): BookmarkEnd,
+                       qn('w:hyperlink'): None, qn('w:pPr'): None}
+            cls = cls_map.get(elem.tag)
+            if cls is None:
+                # XXX need logging
+                if elem.tag not in cls_map:
+                    import sys
+                    sys.stderr.write("couldn't find class for element %r\n" %
+                                     elem.tag)
+            else:
+                items += [cls(elem, self)]
+        return items
+
+    @property
     def runs(self):
         """
         Sequence of |Run| instances corresponding to the <w:r> elements in
@@ -115,7 +139,7 @@ class Paragraph(Parented):
     @property
     def text(self):
         """
-        String formed by concatenating the text of each run in the paragraph.
+        String formed by concatenating the text of each item in the paragraph.
         Tabs and line breaks in the XML are mapped to ``\\t`` and ``\\n``
         characters respectively.
 
@@ -127,8 +151,8 @@ class Paragraph(Parented):
         run-level formatting, such as bold or italic, is removed.
         """
         text = ''
-        for run in self.runs:
-            text += run.text
+        for item in self.items:
+            text += item.text or ''
         return text
 
     @text.setter
@@ -143,3 +167,42 @@ class Paragraph(Parented):
         """
         p = self._p.add_p_before()
         return Paragraph(p, self._parent)
+
+
+# XXX copied from Run but with additional parent argument
+class _Text(object):
+    """
+    Proxy object wrapping ``<w:t>`` element.
+    """
+
+    def __init__(self, t_elm, parent):
+        super(_Text, self).__init__()
+        self._t = t_elm
+
+    @property
+    def text(self):
+        return self._t.text
+
+
+class FldSimple(_Text):
+    # XXX need to get and store the field value
+    """
+          <w:fldSimple w:instr="...">
+            <w:r>
+              <w:t>Value</w:t>
+            </w:r>
+          </w:fldSimple>
+    """
+    pass
+
+
+class BookmarkStart(_Text):
+    pass
+
+
+class BookmarkEnd(_Text):
+    pass
+
+
+class Hyperlink(_Text):
+    pass

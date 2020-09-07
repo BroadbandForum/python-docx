@@ -51,6 +51,31 @@ class BlockItemContainer(Parented):
         return Table(tbl, self)
 
     @property
+    def items(self):
+        """
+        A list containing the items in this container, in document
+        order. Read-only.
+        """
+        items = []
+        for elem in self._element:
+            # XXX want a factory method
+            from .oxml.ns import qn
+            from .table import Table
+            cls_map = {qn('w:p'): Paragraph, qn('w:tbl'): Table,
+                       qn('w:sectPr'): None, qn('w:tcPr'): None,
+                       qn('w:bookmarkStart'): None, qn('w:bookmarkEnd'): None}
+            cls = cls_map.get(elem.tag)
+            if cls is None:
+                # XXX need logging
+                if elem.tag not in cls_map:
+                    import sys
+                    sys.stderr.write("couldn't find class for element %r\n" %
+                                     elem.tag)
+            else:
+                items += [cls(elem, self)]
+        return items
+
+    @property
     def paragraphs(self):
         """
         A list containing the paragraphs in this container, in document
@@ -73,3 +98,26 @@ class BlockItemContainer(Parented):
         container.
         """
         return Paragraph(self._element.add_p(), self)
+
+
+# XXX copied from Run but with additional parent argument
+class _Text(object):
+    """
+    Proxy object wrapping ``<w:t>`` element.
+    """
+
+    def __init__(self, t_elm, parent):
+        super(_Text, self).__init__()
+        self._t = t_elm
+
+    @property
+    def text(self):
+        return self._t.text
+
+
+class BookmarkStart(_Text):
+    pass
+
+
+class BookmarkEnd(_Text):
+    pass

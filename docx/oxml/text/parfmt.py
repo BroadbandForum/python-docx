@@ -8,7 +8,8 @@ from ...enum.text import (
     WD_ALIGN_PARAGRAPH, WD_LINE_SPACING, WD_TAB_ALIGNMENT, WD_TAB_LEADER
 )
 from ...shared import Length
-from ..simpletypes import ST_SignedTwipsMeasure, ST_TwipsMeasure
+from ..simpletypes import ST_DecimalNumber, ST_String, ST_SignedTwipsMeasure, \
+    ST_TwipsMeasure
 from ..xmlchemy import (
     BaseOxmlElement, OneOrMore, OptionalAttribute, RequiredAttribute,
     ZeroOrOne
@@ -346,3 +347,26 @@ class CT_TabStops(BaseOxmlElement):
                 return new_tab
         self.append(new_tab)
         return new_tab
+
+
+class CT_BookmarkStart(BaseOxmlElement):
+    """
+    ``<w:bookmarkStart>`` element, marking the start of a bookmark.
+    """
+    id = OptionalAttribute('w:id', ST_DecimalNumber)
+    name = RequiredAttribute('w:name', ST_String)
+
+    @property
+    def text(self):
+        return '{{bookmarkStart|%s|%s}}' % (self.id, self.name)
+
+
+class CT_BookmarkEnd(BaseOxmlElement):
+    """
+    ``<w:bookmarkEnd>`` element, marking the end of a bookmark.
+    """
+    id = OptionalAttribute('w:id', ST_DecimalNumber)
+
+    @property
+    def text(self):
+        return '{{bookmarkEnd|%s}}' % self.id

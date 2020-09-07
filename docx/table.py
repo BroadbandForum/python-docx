@@ -112,6 +112,8 @@ class Table(Parented):
         """
         return _Rows(self._tbl, self)
 
+    items = rows
+
     @property
     def style(self):
         """
@@ -134,6 +136,11 @@ class Table(Parented):
             style_or_name, WD_STYLE_TYPE.TABLE
         )
         self._tbl.tblStyle_val = style_id
+
+    # XXX should include representation of row text?
+    @property
+    def text(self):
+        return '{{table|XXX}}'
 
     @property
     def table(self):
@@ -255,7 +262,7 @@ class _Cell(BlockItemContainer):
         a string to this property replaces all existing content with a single
         paragraph containing the assigned text in a single run.
         """
-        return '\n'.join(p.text for p in self.paragraphs)
+        return '\n'.join(p.text for p in self.items)
 
     @text.setter
     def text(self, text):
@@ -400,6 +407,8 @@ class _Row(Parented):
         """
         return tuple(self.table.row_cells(self._index))
 
+    items = cells
+
     @property
     def height(self):
         """
@@ -424,6 +433,11 @@ class _Row(Parented):
     @height_rule.setter
     def height_rule(self, value):
         self._tr.trHeight_hRule = value
+
+    # XXX should include representation of cell text?
+    @property
+    def text(self):
+        return '{{row|%d}}' % self._index
 
     @property
     def table(self):

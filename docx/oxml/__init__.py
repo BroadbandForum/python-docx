@@ -229,6 +229,8 @@ from .text.parfmt import (  # noqa
     CT_Spacing,
     CT_TabStop,
     CT_TabStops,
+    CT_BookmarkStart,
+    CT_BookmarkEnd,
 )
 register_element_cls('w:ind',             CT_Ind)
 register_element_cls('w:jc',              CT_Jc)
@@ -241,8 +243,15 @@ register_element_cls('w:spacing',         CT_Spacing)
 register_element_cls('w:tab',             CT_TabStop)
 register_element_cls('w:tabs',            CT_TabStops)
 register_element_cls('w:widowControl',    CT_OnOff)
+register_element_cls('w:bookmarkStart',   CT_BookmarkStart)
+register_element_cls('w:bookmarkEnd',     CT_BookmarkEnd)
 
-from .text.run import CT_Br, CT_R, CT_Text  # noqa
+from .text.run import CT_Br, CT_R, CT_Text, CT_FldSimple, CT_FldChar, \
+    CT_InstrText, CT_Drawing  # noqa
 register_element_cls('w:br', CT_Br)
 register_element_cls('w:r',  CT_R)
 register_element_cls('w:t',  CT_Text)
+register_element_cls('w:fldSimple', CT_FldSimple)
+register_element_cls('w:fldChar', CT_FldChar)
+register_element_cls('w:instrText', CT_InstrText)
+register_element_cls('w:drawing', CT_Drawing)

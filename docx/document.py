@@ -101,6 +101,15 @@ class Document(ElementProxy):
         """
         return self._part.core_properties
 
+    # XXX TBD
+    @property
+    def custom_properties(self):
+        """
+        A |CustomProperties| object providing read/write access to the custom
+        properties of this document.
+        """
+        return self._part.custom_properties
+
     @property
     def inline_shapes(self):
         """
@@ -110,6 +119,13 @@ class Document(ElementProxy):
         glyph, being flowed like other text in a paragraph.
         """
         return self._part.inline_shapes
+
+    @property
+    def items(self):
+        """
+        Sequence of all child items.
+        """
+        return self._body.items
 
     @property
     def paragraphs(self):
