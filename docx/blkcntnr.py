@@ -59,18 +59,27 @@ class BlockItemContainer(Parented):
         items = []
         for elem in self._element:
             # XXX want a factory method
+            # XXX not sure that I need all these
             from .oxml.ns import qn
+            from .section import SectionProperties
             from .table import Table
-            cls_map = {qn('w:p'): Paragraph, qn('w:tbl'): Table,
-                       qn('w:sectPr'): None, qn('w:tcPr'): None,
-                       qn('w:bookmarkStart'): None, qn('w:bookmarkEnd'): None}
+            from .text.hyperlink import Hyperlink
+            from .text.parfmt import BookmarkStart, BookmarkEnd
+            cls_map = {qn('w:p'): Paragraph,
+                       qn('w:tbl'): Table,
+                       qn('w:sectPr'): SectionProperties,
+                       qn('w:tcPr'): None,
+                       qn('w:bookmarkStart'): BookmarkStart,
+                       qn('w:bookmarkEnd'): BookmarkEnd,
+                       qn('w:hyperlink'): Hyperlink}
             cls = cls_map.get(elem.tag)
             if cls is None:
                 # XXX need logging
                 if elem.tag not in cls_map:
                     import sys
-                    sys.stderr.write("couldn't find class for element %r\n" %
-                                     elem.tag)
+                    sys.stderr.write("%s: couldn't find class for element "
+                                     "%r\n" % (self.__class__.__name__,
+                                               elem.tag))
             else:
                 items += [cls(elem, self)]
         return items
@@ -98,26 +107,3 @@ class BlockItemContainer(Parented):
         container.
         """
         return Paragraph(self._element.add_p(), self)
-
-
-# XXX copied from Run but with additional parent argument
-class _Text(object):
-    """
-    Proxy object wrapping ``<w:t>`` element.
-    """
-
-    def __init__(self, t_elm, parent):
-        super(_Text, self).__init__()
-        self._t = t_elm
-
-    @property
-    def text(self):
-        return self._t.text
-
-
-class BookmarkStart(_Text):
-    pass
-
-
-class BookmarkEnd(_Text):
-    pass

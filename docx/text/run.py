@@ -13,6 +13,19 @@ from ..shape import InlineShape
 from ..shared import Parented
 
 
+class Break(Parented):
+    """
+    Proxy object wrapping ``<w:br>`` element.
+    """
+    def __init__(self, br_elm, parent):
+        super(Break, self).__init__(parent)
+        self._br = br_elm
+
+    @property
+    def text(self):
+        return '{{break|%s|%s}}' % (self._br.type, self._br.clear)
+
+
 class Run(Parented):
     """
     Proxy object wrapping ``<w:r>`` element. Several of the properties on Run
@@ -68,6 +81,7 @@ class Run(Parented):
         Add a ``<w:tab/>`` element at the end of the run, which Word
         interprets as a tab character.
         """
+        # noinspection PyProtectedMember
         self._r._add_tab()
 
     def add_text(self, text):
@@ -98,6 +112,53 @@ class Run(Parented):
         """
         self._r.clear_content()
         return self
+
+    @property
+    def items(self):
+        """
+        Sequence of all child items.
+        """
+        items = []
+        for elem in self._element:
+            # XXX want a factory method
+            from ..oxml.ns import qn
+            from ..drawing import Drawing
+            from .field import FieldChar, FieldCode
+            from .parfmt import SymbolChar, TabChar
+            cls_map = {qn('w:br'): Break,
+                       # XXX probably don't need to support comments?
+                       qn('w:commentReference'): None,
+                       qn('w:delText'): DeletedText,
+                       qn('w:drawing'): Drawing,
+                       qn('w:fldChar'): FieldChar,
+                       # XXX do need to support footnotes
+                       qn('w:footnoteReference'): None,
+                       qn('w:instrText'): FieldCode,
+                       qn('w:lastRenderedPageBreak'): None,
+                       # XXX shouldn't ignore this
+                       qn('w:object'): None,
+                       # XXX shouldn't ignore this
+                       qn('w:pict'): None,
+                       qn('w:rPr'): RunProperties,
+                       # XXX shouldn't ignore this? but pandoc can't use it
+                       qn('w:softHyphen'): None,
+                       qn('w:sym'): SymbolChar,
+                       qn('w:tab'): TabChar,
+                       qn('w:t'): _Text,
+                       # XXX shouldn't ignore this
+                       qn('mc:AlternateContent'): None
+                       }
+            cls = cls_map.get(elem.tag)
+            if cls is None:
+                # XXX need logging
+                if elem.tag not in cls_map:
+                    import sys
+                    sys.stderr.write("%s: couldn't find class for element "
+                                     "%r\n" % (self.__class__.__name__,
+                                               elem.tag))
+            else:
+                items += [cls(elem, self)]
+        return items
 
     @property
     def font(self):
@@ -156,8 +217,14 @@ class Run(Parented):
         ``\\r`` character to a ``<w:cr/>`` element. Any existing run content
         is replaced. Run formatting is preserved.
         """
-        return self._r.text
+        # XXX this is what it used to do
+        # return self._r.text
+        text = ''
+        for item in self.items:
+            text += item.text or ''
+        return text
 
+    # XXX this probably won't work, given the above; or else
     @text.setter
     def text(self, text):
         self._r.text = text
@@ -181,11 +248,56 @@ class Run(Parented):
     def underline(self, value):
         self.font.underline = value
 
+    def __str__(self):
+        return self.text or ''
 
+    __repr__ = __str__
+
+
+# XXX there isn't an InsText equivalent! could simulate one by checking for
+#     an InsertedRun ancestor, but this isn't necessary if deleted text is
+#     just ignored
+class DeletedText(Parented):
+    """
+    Proxy object wrapping ``<w:delText>`` element.
+    """
+    def __init__(self, t_elm, parent):
+        super(DeletedText, self).__init__(parent)
+        self._t = t_elm
+
+    @property
+    def text(self):
+        return '{{deletedText|%s}}' % self._t.text
+
+
+class RunProperties(Parented):
+    """
+    Proxy class for a WordprocessingML ``<w:rPr>`` element.
+    """
+    def __init__(self, rp, parent):
+        super(RunProperties, self).__init__(parent)
+        self._rp = rp
+
+    @property
+    def text(self):
+        return '{{runProperties|%s}}' % self._rp.rStyle.val if \
+            self._rp.rStyle is not None else ''
+
+
+# XXX why isn't this Parented?
 class _Text(object):
     """
     Proxy object wrapping ``<w:t>`` element.
     """
-    def __init__(self, t_elm):
+    def __init__(self, t_elm, _parent=None):
         super(_Text, self).__init__()
         self._t = t_elm
+
+    @property
+    def text(self):
+        return self._t.text
+
+    def __str__(self):
+        return self.text or ''
+
+    __repr__ = __str__

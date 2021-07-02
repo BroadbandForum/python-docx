@@ -186,7 +186,7 @@ class Font(ElementProxy):
         found. |None| indicates the typeface is inherited from the style
         hierarchy.
         """
-        rPr = self._element.rPr
+        rPr = getattr(self._element, 'rPr', None)
         if rPr is None:
             return None
         return rPr.rFonts_ascii
@@ -398,7 +398,7 @@ class Font(ElementProxy):
         """
         Return the value of boolean child of `w:rPr` having *name*.
         """
-        rPr = self._element.rPr
+        rPr = getattr(self._element, 'rPr', None)
         if rPr is None:
             return None
         return rPr._get_bool_val(name)

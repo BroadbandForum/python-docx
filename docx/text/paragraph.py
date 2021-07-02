@@ -10,7 +10,7 @@ from __future__ import (
 
 from ..enum.style import WD_STYLE_TYPE
 from .parfmt import ParagraphFormat
-from .run import Run
+from .run import Run, _Text
 from ..shared import Parented
 
 
@@ -93,17 +93,28 @@ class Paragraph(Parented):
         for elem in self._element:
             # XXX want a factory method
             from ..oxml.ns import qn
-            cls_map = {qn('w:r'): Run, qn('w:fldSimple'): FldSimple,
+            from .field import SimpleField
+            from .hyperlink import Hyperlink
+            from .parfmt import BookmarkStart, BookmarkEnd, ParagraphProperties
+            cls_map = {qn('w:r'): Run,
+                       qn('w:hyperlink'): Hyperlink,
+                       qn('w:fldSimple'): SimpleField,
                        qn('w:bookmarkStart'): BookmarkStart,
                        qn('w:bookmarkEnd'): BookmarkEnd,
-                       qn('w:hyperlink'): None, qn('w:pPr'): None}
+                       qn('w:pPr'): ParagraphProperties,
+                       qn('w:proofErr'): None,
+                       qn('w:ins'): InsertedRun,
+                       qn('w:del'): DeletedRun,
+                       qn('w:commentRangeStart'): None,
+                       qn('w:commentRangeEnd'): None}
             cls = cls_map.get(elem.tag)
             if cls is None:
                 # XXX need logging
                 if elem.tag not in cls_map:
                     import sys
-                    sys.stderr.write("couldn't find class for element %r\n" %
-                                     elem.tag)
+                    sys.stderr.write("%s: couldn't find class for element "
+                                     "%r\n" % (self.__class__.__name__,
+                                               elem.tag))
             else:
                 items += [cls(elem, self)]
         return items
@@ -168,41 +179,19 @@ class Paragraph(Parented):
         p = self._p.add_p_before()
         return Paragraph(p, self._parent)
 
+    def __str__(self):
+        return self.text or ''
 
-# XXX copied from Run but with additional parent argument
-class _Text(object):
+    __repr__ = __str__
+
+
+class InsertedRun(Paragraph):
     """
-    Proxy object wrapping ``<w:t>`` element.
+    Proxy object wrapping ``<w:insertedRun>`` element.
     """
 
-    def __init__(self, t_elm, parent):
-        super(_Text, self).__init__()
-        self._t = t_elm
 
-    @property
-    def text(self):
-        return self._t.text
-
-
-class FldSimple(_Text):
-    # XXX need to get and store the field value
+class DeletedRun(Paragraph):
     """
-          <w:fldSimple w:instr="...">
-            <w:r>
-              <w:t>Value</w:t>
-            </w:r>
-          </w:fldSimple>
+    Proxy object wrapping ``<w:deletedRun>`` element.
     """
-    pass
-
-
-class BookmarkStart(_Text):
-    pass
-
-
-class BookmarkEnd(_Text):
-    pass
-
-
-class Hyperlink(_Text):
-    pass

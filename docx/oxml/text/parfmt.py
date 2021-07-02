@@ -349,6 +349,21 @@ class CT_TabStops(BaseOxmlElement):
         return new_tab
 
 
+class CT_TabChar(BaseOxmlElement):
+    """
+    ``<w:tab>`` element, representing an individual tab character.
+    """
+
+
+# XXX can the font attribute reference a font object?
+class CT_SymbolChar(BaseOxmlElement):
+    """
+    ``<w:sym>`` element, representing an individual symbol.
+    """
+    font = RequiredAttribute('w:font', ST_String)
+    char = RequiredAttribute('w:char', ST_String)
+
+
 class CT_BookmarkStart(BaseOxmlElement):
     """
     ``<w:bookmarkStart>`` element, marking the start of a bookmark.
@@ -356,17 +371,9 @@ class CT_BookmarkStart(BaseOxmlElement):
     id = OptionalAttribute('w:id', ST_DecimalNumber)
     name = RequiredAttribute('w:name', ST_String)
 
-    @property
-    def text(self):
-        return '{{bookmarkStart|%s|%s}}' % (self.id, self.name)
-
 
 class CT_BookmarkEnd(BaseOxmlElement):
     """
     ``<w:bookmarkEnd>`` element, marking the end of a bookmark.
     """
     id = OptionalAttribute('w:id', ST_DecimalNumber)
-
-    @property
-    def text(self):
-        return '{{bookmarkEnd|%s}}' % self.id

@@ -29,8 +29,6 @@ class CT_R(BaseOxmlElement):
     cr = ZeroOrMore('w:cr')
     tab = ZeroOrMore('w:tab')
     drawing = ZeroOrMore('w:drawing')
-    fldChar = ZeroOrMore('w:fldChar')
-    instrText = ZeroOrMore('w:instrText')
 
     def _insert_rPr(self, rPr):
         self.insert(0, rPr)
@@ -91,8 +89,7 @@ class CT_R(BaseOxmlElement):
         """
         text = ''
         for child in self:
-            if child.tag in {qn('w:t'), qn('w:fldChar'), qn('w:instrText'),
-                             qn('w:drawing')}:
+            if child.tag == qn('w:t'):
                 t_text = child.text
                 text += t_text if t_text is not None else ''
             elif child.tag == qn('w:tab'):
@@ -113,48 +110,10 @@ class CT_Text(BaseOxmlElement):
     """
 
 
-# XXX I'm not this should be here; it's a peer of <w:r>
-class CT_FldSimple(BaseOxmlElement):
+class CT_DelText(BaseOxmlElement):
     """
-    ``<w:fldSimple>`` element, with a ``w:instr`` attribute and otherwise
-    similar to a paragraph.
+    ``<w:delText>`` element, containing deleted text.
     """
-    instr = OptionalAttribute('w:instr', ST_String)
-
-    @property
-    def text(self):
-        return '{{fldSimple|%s}}' % self.instr.strip()
-
-
-class CT_FldChar(BaseOxmlElement):
-    """
-    ``<w:fldChar>`` element, used to bracket property references etc.
-    """
-    fldCharType = OptionalAttribute('w:fldCharType', ST_String)
-
-    @property
-    def text(self):
-        return '{{fldChar|%s}}' % self.fldCharType
-
-
-class CT_InstrText(BaseOxmlElement):
-    """
-    ``<w:instrText>`` element, used for document properties etc.
-    """
-
-    @property
-    def text(self):
-        return '{{instrText|%s}}' % super(CT_InstrText, self).text.strip()
-
-
-class CT_Drawing(BaseOxmlElement):
-    """
-    ``<w:drawing>`` element.
-    """
-
-    @property
-    def text(self):
-        return '{{drawing|XXX}}'
 
 
 class _RunContentAppender(object):

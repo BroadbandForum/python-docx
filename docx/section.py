@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from docx.blkcntnr import BlockItemContainer
 from docx.compat import Sequence
 from docx.enum.section import WD_HEADER_FOOTER
-from docx.shared import lazyproperty
+from docx.shared import lazyproperty, Parented
 
 
 class Sections(Sequence):
@@ -441,3 +441,16 @@ class _Header(_BaseHeaderFooter):
             if preceding_sectPr is None
             else _Header(preceding_sectPr, self._document_part, self._hdrftr_index)
         )
+
+
+class SectionProperties(Parented):
+    """
+    Proxy class for a WordprocessingML ``<w:sectPr>`` element.
+    """
+    def __init__(self, sp, parent):
+        super(SectionProperties, self).__init__(parent)
+        self._sp = sp
+
+    @property
+    def text(self):
+        return '{{sectionProperties}}'

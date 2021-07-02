@@ -481,3 +481,17 @@ class _Rows(Parented):
         Reference to the |Table| object this row collection belongs to.
         """
         return self._parent.table
+
+
+class TableCellProperties(Parented):
+    """
+    Proxy class for a WordprocessingML ``<w:tcPr>`` element.
+    """
+    def __init__(self, cp, parent):
+        super(TableCellProperties, self).__init__(parent)
+        self._cp = cp
+
+    @property
+    def text(self):
+        return '{{cellProperties|%s}}' % self._cp.tcW.val if \
+            self._cp.tcW is not None else ''

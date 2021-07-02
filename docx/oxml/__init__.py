@@ -106,6 +106,9 @@ register_element_cls("w:type", CT_SectType)
 from .settings import CT_Settings  # noqa
 register_element_cls("w:settings", CT_Settings)
 
+from .drawing import CT_Drawing  # noqa
+register_element_cls("w:drawing", CT_Drawing)
+
 from .shape import (  # noqa
     CT_Blip,
     CT_BlipFillProperties,
@@ -148,6 +151,11 @@ register_element_cls('w:style',          CT_Style)
 register_element_cls('w:styles',         CT_Styles)
 register_element_cls('w:uiPriority',     CT_DecimalNumber)
 register_element_cls('w:unhideWhenUsed', CT_OnOff)
+
+from .text.hyperlink import (  # noqa
+    CT_Hyperlink
+)
+register_element_cls('w:hyperlink', CT_Hyperlink)
 
 from .table import (  # noqa
     CT_Height,
@@ -246,12 +254,16 @@ register_element_cls('w:widowControl',    CT_OnOff)
 register_element_cls('w:bookmarkStart',   CT_BookmarkStart)
 register_element_cls('w:bookmarkEnd',     CT_BookmarkEnd)
 
-from .text.run import CT_Br, CT_R, CT_Text, CT_FldSimple, CT_FldChar, \
-    CT_InstrText, CT_Drawing  # noqa
-register_element_cls('w:br', CT_Br)
-register_element_cls('w:r',  CT_R)
-register_element_cls('w:t',  CT_Text)
+from .text.field import (  # noqa
+    CT_FldSimple,
+    CT_FldChar,
+    CT_InstrText
+)
 register_element_cls('w:fldSimple', CT_FldSimple)
 register_element_cls('w:fldChar', CT_FldChar)
 register_element_cls('w:instrText', CT_InstrText)
-register_element_cls('w:drawing', CT_Drawing)
+
+from .text.run import CT_Br, CT_R, CT_Text  # noqa
+register_element_cls('w:br', CT_Br)
+register_element_cls('w:r',  CT_R)
+register_element_cls('w:t',  CT_Text)
