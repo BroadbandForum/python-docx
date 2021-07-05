@@ -121,13 +121,6 @@ class Document(ElementProxy):
         return self._part.inline_shapes
 
     @property
-    def items(self):
-        """
-        Sequence of all child items.
-        """
-        return self._body.items
-
-    @property
     def paragraphs(self):
         """
         A list of |Paragraph| instances corresponding to the paragraphs in
@@ -201,6 +194,20 @@ class Document(ElementProxy):
             self.__body = _Body(self._element.body, self)
         return self.__body
 
+    @property
+    def items(self):
+        """
+        Sequence of all child items.
+        """
+        return self._body.items
+
+    @property
+    def markdown(self):
+        """
+        Document content as markdown.
+        """
+        return '<document>'
+
 
 class _Body(BlockItemContainer):
     """
@@ -219,3 +226,7 @@ class _Body(BlockItemContainer):
         """
         self._body.clear_content()
         return self
+
+    @property
+    def markdown(self):
+        return '<body>'

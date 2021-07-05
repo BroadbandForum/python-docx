@@ -112,8 +112,6 @@ class Table(Parented):
         """
         return _Rows(self._tbl, self)
 
-    items = rows
-
     @property
     def style(self):
         """
@@ -136,11 +134,6 @@ class Table(Parented):
             style_or_name, WD_STYLE_TYPE.TABLE
         )
         self._tbl.tblStyle_val = style_id
-
-    # XXX should include representation of row text?
-    @property
-    def text(self):
-        return '{{table|XXX}}'
 
     @property
     def table(self):
@@ -194,6 +187,12 @@ class Table(Parented):
     @property
     def _tblPr(self):
         return self._tbl.tblPr
+
+    # XXX should include representation of row text?
+    @property
+    def markdown(self):
+        return ''.join(['{{table|style=%s|' % self.style.name] + [
+            item.markdown for item in self.items] + ['}}'])
 
 
 class _Cell(BlockItemContainer):
@@ -262,7 +261,7 @@ class _Cell(BlockItemContainer):
         a string to this property replaces all existing content with a single
         paragraph containing the assigned text in a single run.
         """
-        return '\n'.join(p.text for p in self.items)
+        return '\n'.join(p.text for p in self.paragraphs)
 
     @text.setter
     def text(self, text):
@@ -407,8 +406,6 @@ class _Row(Parented):
         """
         return tuple(self.table.row_cells(self._index))
 
-    items = cells
-
     @property
     def height(self):
         """
@@ -434,11 +431,6 @@ class _Row(Parented):
     def height_rule(self, value):
         self._tr.trHeight_hRule = value
 
-    # XXX should include representation of cell text?
-    @property
-    def text(self):
-        return '{{row|%d}}' % self._index
-
     @property
     def table(self):
         """
@@ -452,6 +444,12 @@ class _Row(Parented):
         Index of this row in its table, starting from zero.
         """
         return self._tr.tr_idx
+
+    @property
+    def markdown(self):
+        return ''.join(
+                ['{{row|index=%d|' % self._index] + [item.markdown for item
+                                                     in self.items] + ['}}'])
 
 
 class _Rows(Parented):
@@ -483,15 +481,55 @@ class _Rows(Parented):
         return self._parent.table
 
 
+class TableProperties(Parented):
+    """
+    Proxy class for a WordprocessingML ``<w:tblPr>`` element.
+    """
+    def __init__(self, tp, parent):
+        super(TableProperties, self).__init__(parent)
+        self._tp = self._element = tp
+
+    @property
+    def markdown(self):
+        return '{{tableProperties|XXX}}'
+
+
+class TableGrid(Parented):
+    """
+    Proxy class for a WordprocessingML ``<w:tblGrid>`` element.
+    """
+    def __init__(self, tg, parent):
+        super(TableGrid, self).__init__(parent)
+        self._tg = self._element = tg
+
+    @property
+    def markdown(self):
+        return '{{tableGrid|XXX}}'
+
+
+class TableRowProperties(Parented):
+    """
+    Proxy class for a WordprocessingML ``<w:trPr>`` element.
+    """
+    def __init__(self, trp, parent):
+        super(TableRowProperties, self).__init__(parent)
+        self._trp = self._element = trp
+
+    @property
+    def markdown(self):
+        return '{{tableRowProperties|XXX}}'
+
+
 class TableCellProperties(Parented):
     """
     Proxy class for a WordprocessingML ``<w:tcPr>`` element.
     """
-    def __init__(self, cp, parent):
+    def __init__(self, tcp, parent):
         super(TableCellProperties, self).__init__(parent)
-        self._cp = cp
+        self._tcp = self._element = tcp
 
     @property
-    def text(self):
-        return '{{cellProperties|%s}}' % self._cp.tcW.val if \
-            self._cp.tcW is not None else ''
+    def markdown(self):
+        return '{{tableCellProperties|w=%s|type=%s}}' % (self._tcp.tcW.w,
+                                                         self._tcp.tcW.type) \
+            if self._tcp.tcW is not None else ''

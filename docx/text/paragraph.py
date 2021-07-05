@@ -10,7 +10,7 @@ from __future__ import (
 
 from ..enum.style import WD_STYLE_TYPE
 from .parfmt import ParagraphFormat
-from .run import Run, _Text
+from .run import Run
 from ..shared import Parented
 
 
@@ -85,41 +85,6 @@ class Paragraph(Parented):
         return ParagraphFormat(self._element)
 
     @property
-    def items(self):
-        """
-        Sequence of all child items.
-        """
-        items = []
-        for elem in self._element:
-            # XXX want a factory method
-            from ..oxml.ns import qn
-            from .field import SimpleField
-            from .hyperlink import Hyperlink
-            from .parfmt import BookmarkStart, BookmarkEnd, ParagraphProperties
-            cls_map = {qn('w:r'): Run,
-                       qn('w:hyperlink'): Hyperlink,
-                       qn('w:fldSimple'): SimpleField,
-                       qn('w:bookmarkStart'): BookmarkStart,
-                       qn('w:bookmarkEnd'): BookmarkEnd,
-                       qn('w:pPr'): ParagraphProperties,
-                       qn('w:proofErr'): None,
-                       qn('w:ins'): InsertedRun,
-                       qn('w:del'): DeletedRun,
-                       qn('w:commentRangeStart'): None,
-                       qn('w:commentRangeEnd'): None}
-            cls = cls_map.get(elem.tag)
-            if cls is None:
-                # XXX need logging
-                if elem.tag not in cls_map:
-                    import sys
-                    sys.stderr.write("%s: couldn't find class for element "
-                                     "%r\n" % (self.__class__.__name__,
-                                               elem.tag))
-            else:
-                items += [cls(elem, self)]
-        return items
-
-    @property
     def runs(self):
         """
         Sequence of |Run| instances corresponding to the <w:r> elements in
@@ -150,7 +115,7 @@ class Paragraph(Parented):
     @property
     def text(self):
         """
-        String formed by concatenating the text of each item in the paragraph.
+        String formed by concatenating the text of each run in the paragraph.
         Tabs and line breaks in the XML are mapped to ``\\t`` and ``\\n``
         characters respectively.
 
@@ -162,8 +127,8 @@ class Paragraph(Parented):
         run-level formatting, such as bold or italic, is removed.
         """
         text = ''
-        for item in self.items:
-            text += item.text or ''
+        for run in self.runs:
+            text += run.text
         return text
 
     @text.setter
@@ -180,18 +145,20 @@ class Paragraph(Parented):
         return Paragraph(p, self._parent)
 
     def __str__(self):
-        return self.text or ''
+        return self.text
 
     __repr__ = __str__
 
 
 class InsertedRun(Paragraph):
     """
-    Proxy object wrapping ``<w:insertedRun>`` element.
+    Proxy object wrapping ``<w:ins>`` element.
     """
 
 
 class DeletedRun(Paragraph):
     """
-    Proxy object wrapping ``<w:deletedRun>`` element.
+    Proxy object wrapping ``<w:del>`` element.
     """
+
+

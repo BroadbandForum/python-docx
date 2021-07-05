@@ -152,11 +152,6 @@ register_element_cls('w:styles',         CT_Styles)
 register_element_cls('w:uiPriority',     CT_DecimalNumber)
 register_element_cls('w:unhideWhenUsed', CT_OnOff)
 
-from .text.hyperlink import (  # noqa
-    CT_Hyperlink
-)
-register_element_cls('w:hyperlink', CT_Hyperlink)
-
 from .table import (  # noqa
     CT_Height,
     CT_Row,
@@ -227,19 +222,27 @@ register_element_cls('w:vanish',     CT_OnOff)
 register_element_cls('w:vertAlign',  CT_VerticalAlignRun)
 register_element_cls('w:webHidden',  CT_OnOff)
 
+from .text.hyperlink import (  # noqa
+    CT_Hyperlink
+)
+register_element_cls('w:hyperlink', CT_Hyperlink)
+
 from .text.paragraph import CT_P  # noqa
 register_element_cls('w:p', CT_P)
 
 from .text.parfmt import (  # noqa
+    CT_BookmarkEnd,
+    CT_BookmarkStart,
     CT_Ind,
     CT_Jc,
     CT_PPr,
     CT_Spacing,
+    CT_SymbolChar,
     CT_TabStop,
     CT_TabStops,
-    CT_BookmarkStart,
-    CT_BookmarkEnd,
 )
+register_element_cls('w:bookmarkStart',   CT_BookmarkStart)
+register_element_cls('w:bookmarkEnd',     CT_BookmarkEnd)
 register_element_cls('w:ind',             CT_Ind)
 register_element_cls('w:jc',              CT_Jc)
 register_element_cls('w:keepLines',       CT_OnOff)
@@ -248,11 +251,10 @@ register_element_cls('w:pageBreakBefore', CT_OnOff)
 register_element_cls('w:pPr',             CT_PPr)
 register_element_cls('w:pStyle',          CT_String)
 register_element_cls('w:spacing',         CT_Spacing)
+register_element_cls('w:sym',             CT_SymbolChar)
 register_element_cls('w:tab',             CT_TabStop)
 register_element_cls('w:tabs',            CT_TabStops)
 register_element_cls('w:widowControl',    CT_OnOff)
-register_element_cls('w:bookmarkStart',   CT_BookmarkStart)
-register_element_cls('w:bookmarkEnd',     CT_BookmarkEnd)
 
 from .text.field import (  # noqa
     CT_FldSimple,

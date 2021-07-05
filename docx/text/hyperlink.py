@@ -19,6 +19,6 @@ class Hyperlink(Parented):
         self._element = self._hyperlink = hyperlink
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{hyperlink|%s|%s}}' % (self._element.rid,
                                         self._element.r.text)

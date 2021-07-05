@@ -20,33 +20,10 @@ class SimpleField(Parented):
         self._element = field
 
     @property
-    def items(self):
-        """
-        Sequence of all child items.
-        """
-        items = []
-        for elem in self._element:
-            # XXX want a factory method
-            from ..oxml.ns import qn
-            from .run import Run
-            cls_map = {
-                qn('w:r'): Run}
-            cls = cls_map.get(elem.tag)
-            if cls is None:
-                # XXX need logging
-                if elem.tag not in cls_map:
-                    import sys
-                    sys.stderr.write("%s: couldn't find class for element "
-                                     "%r\n" % (self.__class__.__name__,
-                                               elem.tag))
-            else:
-                items += [cls(elem, self)]
-        return items
-
-    @property
-    def text(self):
+    def markdown(self):
         return '{{simpleField|%s|%s}}' % (self._element.instr.strip(),
-                                          ''.join(i.text for i in self.items))
+                                          ''.join(i.markdown for i in
+                                                  self.items))
 
 
 class FieldChar(Parented):
@@ -58,7 +35,7 @@ class FieldChar(Parented):
         self._element = field
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{fieldChar|%s}}' % self._element.fldCharType
 
 
@@ -71,6 +48,6 @@ class FieldCode(Parented):
         self._element = field
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{fieldCode|%s}}' % re.sub(r' +', ' ',
                                            self._element.text.strip())

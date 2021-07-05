@@ -313,7 +313,7 @@ class TabChar(Parented):
         self._tab = tab_elm
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{tab}}'
 
 
@@ -323,10 +323,10 @@ class SymbolChar(Parented):
     """
     def __init__(self, symbol_elm, parent):
         super(SymbolChar, self).__init__(parent)
-        self._symbol = symbol_elm
+        self._symbol = self._element = symbol_elm
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{symbol|%s|%s}}' % (self._symbol.font, self._symbol.char)
 
 
@@ -337,10 +337,10 @@ class BookmarkStart(Parented):
 
     def __init__(self, start_elm, parent):
         super(BookmarkStart, self).__init__(parent)
-        self._start = start_elm
+        self._start = self._element = start_elm
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{bookmarkStart|%s|%s}}' % (self._start.id, self._start.name)
 
 
@@ -351,10 +351,10 @@ class BookmarkEnd(Parented):
 
     def __init__(self, end_elm, parent):
         super(BookmarkEnd, self).__init__(parent)
-        self._end = end_elm
+        self._end = self._element = end_elm
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{bookmarkEnd|%s}}' % self._end.id
 
 
@@ -364,10 +364,10 @@ class ParagraphProperties(Parented):
     """
     def __init__(self, pp, parent):
         super(ParagraphProperties, self).__init__(parent)
-        self._pp = pp
+        self._pp = self._element = pp
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{paragraphProperties|ilvl=%s|numId=%s}}' % (
             self._pp.numPr.ilvl.val,
             self._pp.numPr.numId.val) if self._pp.numPr is not None else ''

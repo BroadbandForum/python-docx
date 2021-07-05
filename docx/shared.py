@@ -231,6 +231,7 @@ class ElementProxy(object):
         return self._parent.part
 
 
+# XXX this seems to be used a lot where ElementProxy would be more appropriate?
 class Parented(object):
     """
     Provides common services for document elements that occur below a part
@@ -238,6 +239,7 @@ class Parented(object):
     such as add or drop a relationship. Provides ``self._parent`` attribute
     to subclasses.
     """
+
     def __init__(self, parent):
         super(Parented, self).__init__()
         self._parent = parent
@@ -248,3 +250,69 @@ class Parented(object):
         The package part containing this object
         """
         return self._parent.part
+
+    _clsmap = {}
+    _stopmap = {}
+
+    @classmethod
+    def register(cls, tag, stop=False):
+        from .oxml.ns import qn
+        tag_ = qn(tag) if tag is not None else None
+        cls._clsmap[tag_] = cls
+        cls._stopmap[cls] = stop
+
+    @property
+    def items(self):
+        """
+        A list of element proxies for the children of this object's lxml
+        element (not necessarily all of the children: just those children
+        for which element proxy classes are defined).
+        """
+        class Undefined(object):
+            def __init__(self, _elem, _parent):
+                _, tag = _elem.tag.rsplit('}', 1)
+                # XXX should use logging
+                import sys
+                sys.stderr.write("%s: couldn't find Parented sub-class for "
+                                 "element %s\n" % (type(self).__name__, tag))
+                self.items = []
+                self.markdown = '{{undefined|%s}}' % tag
+
+        # if class has set 'stop', return empty list
+        if self._stopmap.get(type(self)):
+            return []
+
+        # XXX this requires _element, which is defined by convention on many
+        #     Parented sub-classes; need to resolve ElementProxy versus
+        #     Parented (don't want to change it now, because would have to
+        #     change all Parented constructors)
+        else:
+            return [self._clsmap.get(elem.tag, Undefined)(elem, self) for
+                    elem in self._element]
+
+    # XXX what about this item's local content? up to individual classes?
+    # XXX what about separators? up to individual classes?
+    @property
+    def markdown(self):
+        """
+        Object hierarchy content as markdown.
+        """
+        return ''.join(item.markdown for item in self.items)
+
+
+class Ignored(Parented):
+    """
+    Proxy object wrapping an element that is to be ignored when collecting
+    items.
+    """
+    def __init__(self, element, parent):
+        super(Ignored, self).__init__(parent)
+        self._element = element
+
+    @property
+    def items(self):
+        return []
+
+    @property
+    def markdown(self):
+        return ''

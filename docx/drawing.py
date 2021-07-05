@@ -19,5 +19,5 @@ class Drawing(Parented):
         self._element = self._hyperlink = hyperlink
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{drawing|XXX}}'

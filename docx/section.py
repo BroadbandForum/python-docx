@@ -449,8 +449,8 @@ class SectionProperties(Parented):
     """
     def __init__(self, sp, parent):
         super(SectionProperties, self).__init__(parent)
-        self._sp = sp
+        self._sp = self._element = sp
 
     @property
-    def text(self):
+    def markdown(self):
         return '{{sectionProperties}}'

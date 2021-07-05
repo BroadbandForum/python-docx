@@ -5,7 +5,7 @@ Custom element classes related to text runs (CT_R).
 """
 
 from ..ns import qn
-from ..simpletypes import ST_String, ST_BrClear, ST_BrType
+from ..simpletypes import ST_BrClear, ST_BrType
 from ..xmlchemy import (
     BaseOxmlElement, OptionalAttribute, ZeroOrMore, ZeroOrOne
 )

@@ -51,40 +51,6 @@ class BlockItemContainer(Parented):
         return Table(tbl, self)
 
     @property
-    def items(self):
-        """
-        A list containing the items in this container, in document
-        order. Read-only.
-        """
-        items = []
-        for elem in self._element:
-            # XXX want a factory method
-            # XXX not sure that I need all these
-            from .oxml.ns import qn
-            from .section import SectionProperties
-            from .table import Table
-            from .text.hyperlink import Hyperlink
-            from .text.parfmt import BookmarkStart, BookmarkEnd
-            cls_map = {qn('w:p'): Paragraph,
-                       qn('w:tbl'): Table,
-                       qn('w:sectPr'): SectionProperties,
-                       qn('w:tcPr'): None,
-                       qn('w:bookmarkStart'): BookmarkStart,
-                       qn('w:bookmarkEnd'): BookmarkEnd,
-                       qn('w:hyperlink'): Hyperlink}
-            cls = cls_map.get(elem.tag)
-            if cls is None:
-                # XXX need logging
-                if elem.tag not in cls_map:
-                    import sys
-                    sys.stderr.write("%s: couldn't find class for element "
-                                     "%r\n" % (self.__class__.__name__,
-                                               elem.tag))
-            else:
-                items += [cls(elem, self)]
-        return items
-
-    @property
     def paragraphs(self):
         """
         A list containing the paragraphs in this container, in document
