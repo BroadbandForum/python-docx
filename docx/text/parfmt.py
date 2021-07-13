@@ -8,6 +8,8 @@ from __future__ import (
     absolute_import, division, print_function, unicode_literals
 )
 
+import re
+
 from ..enum.text import WD_LINE_SPACING
 from ..shared import ElementProxy, Emu, lazyproperty, Length, Parented, Pt, \
     Twips
@@ -310,7 +312,7 @@ class TabChar(Parented):
     """
     def __init__(self, tab_elm, parent):
         super(TabChar, self).__init__(parent)
-        self._tab = tab_elm
+        self._tab = self._element = tab_elm
 
     @property
     def markdown(self):
@@ -327,7 +329,9 @@ class SymbolChar(Parented):
 
     @property
     def markdown(self):
-        return '{{symbol|%s|%s}}' % (self._symbol.font, self._symbol.char)
+        # XXX don't even try to map this to anything
+        return '{{symbolChar|font=%s|char=%s}}' % (self._symbol.font,
+                                                   self._symbol.char)
 
 
 class BookmarkStart(Parented):
@@ -335,13 +339,24 @@ class BookmarkStart(Parented):
     Proxy object wrapping ``<w:bookmarkStart>`` element.
     """
 
+    # maps bookmark name to BookmarkStart object
+    bookmarks = {}
+
     def __init__(self, start_elm, parent):
+        cls = self.__class__
         super(BookmarkStart, self).__init__(parent)
         self._start = self._element = start_elm
+        cls.bookmarks[self._start.name] = self
 
     @property
     def markdown(self):
-        return '{{bookmarkStart|%s|%s}}' % (self._start.id, self._start.name)
+        return self
+
+    def __str__(self):
+        return '%s %s' % (self._start.id, self._start.name)
+
+    def __repr__(self):
+        return '<%s %s>' % (type(self).__name__, str(self))
 
 
 class BookmarkEnd(Parented):
@@ -355,7 +370,13 @@ class BookmarkEnd(Parented):
 
     @property
     def markdown(self):
-        return '{{bookmarkEnd|%s}}' % self._end.id
+        return self
+
+    def __str__(self):
+        return '%s' % self._end.id
+
+    def __repr__(self):
+        return '<%s %s>' % (type(self).__name__, str(self))
 
 
 class ParagraphProperties(Parented):
@@ -366,8 +387,127 @@ class ParagraphProperties(Parented):
         super(ParagraphProperties, self).__init__(parent)
         self._pp = self._element = pp
 
+    def _level_and_special(self):
+        level = 0
+        special = ''
+
+        # XXX shouldn't make assumptions about heading style names
+        # XXX should also determine whether the style uses numbering or not
+        #     (if not should arrange to append '{-}')
+        # XXX this should perhaps be done at the paragraph level, but it's
+        #     done here because it involves a prefix (so it's convenient)
+        match = re.match(r'(Heading|Annex|Appendix)\s*(\d+|Heading)',
+                         self._parent.style.name)
+        if match:
+            level = 1 if match.group(2) == 'Heading' else int(match.group(2))
+            special = match.group(1).lower() if match.group(1) in {
+                'Annex', 'Appendix'} and level == 1 else ''
+
+        return level, special
+
+    # saved numPr
+    saved_numPr = None
+
+    # saved ilvl details
+    saved_ilvl_map = {}  # maps numPr ilvl to 0,1,2 actual ilvl
+    saved_ilvl_numPr = -1  # last numPr ilvl
+    saved_ilvl_actual = -1  # last actual ilvl
+
     @property
     def markdown(self):
-        return '{{paragraphProperties|ilvl=%s|numId=%s}}' % (
-            self._pp.numPr.ilvl.val,
-            self._pp.numPr.numId.val) if self._pp.numPr is not None else ''
+        cls = self.__class__
+
+        # if this isn't a ListParagraph, clear out the saved numPr and ilvls
+        # XXX this can't be the correct criterion, because there's no
+        #     guarantee that all lists are list paragraphs
+        if self._parent.style.name != 'List Paragraph':
+            cls.saved_numPr = None
+            cls.saved_ilvl_map = {}
+            cls.saved_ilvl_numPr = -1
+            cls.saved_ilvl_actual = -1
+
+        # use the paragraph style to determine whether it's a heading
+        level, _ = self._level_and_special()
+        if level > 0:
+            return (level * '#') + ' '
+
+        # numbering properties apparently default to those from the previous
+        # paragraph
+        # XXX maybe it's not this simple but we'll assume that this continues
+        #     until the next non-ListParagraph
+        numPr = self._pp.numPr
+        if numPr is None:
+            numPr = self.saved_numPr
+            if numPr is None:
+                return ''
+        cls.saved_numPr = numPr
+
+        # numId zero means no numbering; this is handled via markdown_suffix
+        numId = numPr.numId.val
+        ilvl = numPr.ilvl.val
+        if numId == 0:
+            return ''
+
+        # this is the CT_Numbering instance
+        numbering = self.part.numbering_part.numbering_definitions._numbering
+
+        # only the 'w:num' elements are modeled (via num_lst), which allows us
+        # to map 'w:numId' to the (internal) 'w:abstractNumId', but doesn't
+        # expose any of its details
+        # (this throws an exception if numId isn't found (which would imply
+        # a corrupt document)
+        num = numbering.num_having_numId(numId)
+        abstractNumId = num.abstractNumId.val
+
+        # XXX need to implement level overrides
+        lvlOverrides = num.lvlOverride_lst
+        #assert len(lvlOverrides) == 0, 'level overrides not yet supported'
+
+        # use XPath to find the relevant details (we're only interested in
+        # enough information to distinguish headings, bulleted lists and
+        # numbered lists)
+        # XXX we can add more details later, e.g. bullet styles etc.
+        numFmts = numbering.xpath(
+                '//w:abstractNum[@w:abstractNumId=%r]/w:lvl[@w:ilvl=%r]/'
+                'w:numFmt/@w:val' % (abstractNumId, ilvl))
+        if len(numFmts) < 1:
+            return ''
+        numFmt = numFmts[0]
+        assert numFmt in {'bullet', 'decimal', 'lowerLetter', 'lowerRoman'}
+
+        # we can't trust ilvl because the document author may have used
+        # the wrong level and overridden the indent, so it's not necessarily
+        # 0, 1, 2...; therefore derive the actual level
+        if ilvl > cls.saved_ilvl_numPr:
+            cls.saved_ilvl_actual += 1
+            cls.saved_ilvl_map[ilvl] = cls.saved_ilvl_actual
+        elif ilvl < cls.saved_ilvl_numPr:
+            cls.saved_ilvl_actual = cls.saved_ilvl_map[ilvl]
+        cls.saved_ilvl_numPr = ilvl
+
+        # generate the markdown
+        # XXX this uses pandoc '#.' for numbered lists; should take account of
+        #     the lvlText pattern
+        indent = 4 * cls.saved_ilvl_actual * ' '
+        prefix = '* ' if numFmt == 'bullet' else '#. '
+        return indent + prefix
+
+    @property
+    def markdown_suffix(self):
+        text = ''
+        classes = []
+
+        _, special = self._level_and_special()
+        if special:
+            classes += [special]
+
+        numPr = self._pp.numPr
+        if numPr is not None:
+            numId = numPr.numId.val
+            if numId == 0:
+                classes += ['unnumbered']
+
+        if classes:
+            text = ' {%s}' % ' '.join('.%s' % c for c in classes)
+
+        return text

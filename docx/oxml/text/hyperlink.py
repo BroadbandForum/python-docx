@@ -15,5 +15,6 @@ class CT_Hyperlink(BaseOxmlElement):
     ``<w:hyperlink>`` element.
     """
 
+    anchor = OptionalAttribute('w:anchor', ST_String)
     rid = OptionalAttribute('r:id', ST_String)
     r = ZeroOrOne('w:r')

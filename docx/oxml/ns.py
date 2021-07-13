@@ -11,6 +11,7 @@ nsmap = {
     "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
     "c": "http://schemas.openxmlformats.org/drawingml/2006/chart",
     "cp": "http://schemas.openxmlformats.org/package/2006/metadata/core-properties",
+    "cusp": "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties",
     "dc": "http://purl.org/dc/elements/1.1/",
     "dcmitype": "http://purl.org/dc/dcmitype/",
     "dcterms": "http://purl.org/dc/terms/",
@@ -23,6 +24,7 @@ nsmap = {
     "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
     'w14': "http://schemas.microsoft.com/office/word/2010/wordml",
     "wp": "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
+    "vt": "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes",
     "xml": "http://www.w3.org/XML/1998/namespace",
     "xsi": "http://www.w3.org/2001/XMLSchema-instance",
 }

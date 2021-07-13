@@ -441,16 +441,3 @@ class _Header(_BaseHeaderFooter):
             if preceding_sectPr is None
             else _Header(preceding_sectPr, self._document_part, self._hdrftr_index)
         )
-
-
-class SectionProperties(Parented):
-    """
-    Proxy class for a WordprocessingML ``<w:sectPr>`` element.
-    """
-    def __init__(self, sp, parent):
-        super(SectionProperties, self).__init__(parent)
-        self._sp = self._element = sp
-
-    @property
-    def markdown(self):
-        return '{{sectionProperties}}'

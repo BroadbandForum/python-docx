@@ -6,7 +6,7 @@ The |Hyperlink| object and related proxy classes.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from ..blkcntnr import BlockItemContainer
+from ..compat import is_string
 from ..shared import Parented
 
 
@@ -20,5 +20,27 @@ class Hyperlink(Parented):
 
     @property
     def markdown(self):
-        return '{{hyperlink|%s|%s}}' % (self._element.rid,
-                                        self._element.r.text)
+        # XXX this is similar to the Paragraph.markdown logic
+        text = ''
+        markdown_lst = [item.markdown for item in self.items]
+        for value in markdown_lst:
+            if not isinstance(value, list):
+                value = [value]
+            for val in value:
+                if is_string(val):
+                    text += val
+
+        anchor = self._element.anchor
+        rid = self._element.rid
+        assert (anchor or rid) and not (anchor and rid)
+        if anchor:
+            # XXX use of [] rather than () is deliberate here; bookmark
+            #     resolution will change them to () if necessary
+            return '[%s][%s]' % (text, '{{ref|%s}}' % anchor)
+        else:
+            assert rid in self.part.rels
+            target_ref = self.part.rels[rid].target_ref
+            if text == target_ref:
+                return '<%s>' % target_ref
+            else:
+                return '[%s](%s)' % (text, target_ref)

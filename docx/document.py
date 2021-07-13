@@ -101,7 +101,6 @@ class Document(ElementProxy):
         """
         return self._part.core_properties
 
-    # XXX TBD
     @property
     def custom_properties(self):
         """

@@ -7,6 +7,7 @@ The |Table| object and related proxy classes.
 from __future__ import absolute_import, print_function, unicode_literals
 
 from .blkcntnr import BlockItemContainer
+from .compat import is_string
 from .enum.style import WD_STYLE_TYPE
 from .oxml.simpletypes import ST_Merge
 from .shared import Inches, lazyproperty, Parented
@@ -188,11 +189,74 @@ class Table(Parented):
     def _tblPr(self):
         return self._tbl.tblPr
 
-    # XXX should include representation of row text?
+    # XXX this isn't the best way to do this (we want to iterate over the rows
+    #     and cells for debugging purposes, but we don't want them to generate
+    #     output, because Table.markdown outputs the entire table)
+    @property
+    def items(self):
+        return []
+
     @property
     def markdown(self):
-        return ''.join(['{{table|style=%s|' % self.style.name] + [
-            item.markdown for item in self.items] + ['}}'])
+        """
+        Only support pandoc pipe tables, because these are easiest to edit,
+        e.g.:
+
+        | Right | Left | Default | Center |
+        |------:|:-----|---------|:------:|
+        |   12  |  12  |    12   |    12  |
+        |  123  |  123 |   123   |   123  |
+        |    1  |    1 |     1   |     1  |
+
+        (Leading and trailing pipe characters are optional, and are omitted.)
+        # XXX need to think about escaping, and about "flattening" any
+        #     block content, e.g. lists, within rows
+        # XXX should intercept some tables and use built-in BBF div tables
+        """
+        # determine whether the first row is a header row (only check this for
+        # non table grid styles)
+        # XXX this isn't quite enough...
+        has_header_row = False
+        tblPr = self._element.tblPr
+        if self.style.name not in {'Table Grid'} and tblPr is not None:
+            firstRow = tblPr.xpath('w:tblLook/@w:firstRow')
+            if firstRow is not None and len(firstRow) > 0:
+                has_header_row = firstRow[0] in {'1', 'on', 'true'}
+
+        # determine column widths; these are measured in EMUs (although it
+        # doesn't matter); an EMU is English Metric Unit (EMU): there are
+        # 914,400 EMUs per inch
+        widths = [column.width for column in self.columns]
+        total_width = 0
+        for width in widths:
+            total_width += width
+        if total_width <= 0:
+            total_width = 1
+
+        # scale to percentages; will use a character per percent
+        widths = [int((100 * width) / total_width) for width in widths]
+
+        # use a fake initial row if there's no header row
+        table_text = '\n'
+        num_cols = len(self.columns)
+        if not has_header_row:
+            for char in (' ', '-'):
+                for col_num in range(num_cols):
+                    table_text += '|' + widths[col_num] * char
+                table_text += '\n'
+
+        # iterate through rows
+        for row_num, row in enumerate(self.rows):
+            row_text = ''
+            for cell_num, cell in enumerate(row.cells):
+                row_text += '| %s ' % cell.markdown.strip().replace('\n',
+                                                                    '\\\n')
+            table_text += row_text.strip() + '\n'
+            if has_header_row and row_num == 0:
+                for col_num in range(num_cols):
+                    table_text += '|' + widths[col_num] * '-'
+                table_text += '\n'
+        return table_text.rstrip()
 
 
 class _Cell(BlockItemContainer):
@@ -303,6 +367,12 @@ class _Cell(BlockItemContainer):
     @width.setter
     def width(self, value):
         self._tc.width = value
+
+    @property
+    def markdown(self):
+        markdown_lst = [item.markdown for item in self.items]
+        return '\n'.join(value.strip() for value in markdown_lst if is_string(
+                value))
 
 
 class _Column(Parented):
@@ -445,12 +515,6 @@ class _Row(Parented):
         """
         return self._tr.tr_idx
 
-    @property
-    def markdown(self):
-        return ''.join(
-                ['{{row|index=%d|' % self._index] + [item.markdown for item
-                                                     in self.items] + ['}}'])
-
 
 class _Rows(Parented):
     """
@@ -479,57 +543,3 @@ class _Rows(Parented):
         Reference to the |Table| object this row collection belongs to.
         """
         return self._parent.table
-
-
-class TableProperties(Parented):
-    """
-    Proxy class for a WordprocessingML ``<w:tblPr>`` element.
-    """
-    def __init__(self, tp, parent):
-        super(TableProperties, self).__init__(parent)
-        self._tp = self._element = tp
-
-    @property
-    def markdown(self):
-        return '{{tableProperties|XXX}}'
-
-
-class TableGrid(Parented):
-    """
-    Proxy class for a WordprocessingML ``<w:tblGrid>`` element.
-    """
-    def __init__(self, tg, parent):
-        super(TableGrid, self).__init__(parent)
-        self._tg = self._element = tg
-
-    @property
-    def markdown(self):
-        return '{{tableGrid|XXX}}'
-
-
-class TableRowProperties(Parented):
-    """
-    Proxy class for a WordprocessingML ``<w:trPr>`` element.
-    """
-    def __init__(self, trp, parent):
-        super(TableRowProperties, self).__init__(parent)
-        self._trp = self._element = trp
-
-    @property
-    def markdown(self):
-        return '{{tableRowProperties|XXX}}'
-
-
-class TableCellProperties(Parented):
-    """
-    Proxy class for a WordprocessingML ``<w:tcPr>`` element.
-    """
-    def __init__(self, tcp, parent):
-        super(TableCellProperties, self).__init__(parent)
-        self._tcp = self._element = tcp
-
-    @property
-    def markdown(self):
-        return '{{tableCellProperties|w=%s|type=%s}}' % (self._tcp.tcW.w,
-                                                         self._tcp.tcW.type) \
-            if self._tcp.tcW is not None else ''

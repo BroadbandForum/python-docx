@@ -6,6 +6,8 @@ Objects shared by docx modules.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from .compat import is_string
+
 
 class Length(int):
     """
@@ -276,7 +278,7 @@ class Parented(object):
                 sys.stderr.write("%s: couldn't find Parented sub-class for "
                                  "element %s\n" % (type(self).__name__, tag))
                 self.items = []
-                self.markdown = '{{undefined|%s}}' % tag
+                self.markdown = ''
 
         # if class has set 'stop', return empty list
         if self._stopmap.get(type(self)):
@@ -290,14 +292,18 @@ class Parented(object):
             return [self._clsmap.get(elem.tag, Undefined)(elem, self) for
                     elem in self._element]
 
-    # XXX what about this item's local content? up to individual classes?
-    # XXX what about separators? up to individual classes?
     @property
     def markdown(self):
         """
-        Object hierarchy content as markdown.
+        Object content as markdown (it's up to each class to decide whether
+        and how to include child item content).
         """
-        return ''.join(item.markdown for item in self.items)
+        markdown_lst = [item.markdown for item in self.items]
+        return ''.join(value for value in markdown_lst if is_string(value))
+
+    @property
+    def markdown_suffix(self):
+        return ''
 
 
 class Ignored(Parented):
@@ -316,3 +322,6 @@ class Ignored(Parented):
     @property
     def markdown(self):
         return ''
+
+    def __str__(self):
+        return str(self._element)

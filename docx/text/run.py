@@ -6,6 +6,9 @@ Run-related proxy objects for python-docx, Run in particular.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import re
+
+from ..compat import is_string
 from ..enum.style import WD_STYLE_TYPE
 from ..enum.text import WD_BREAK
 from .font import Font
@@ -21,6 +24,10 @@ class Run(Parented):
     not specified directly on the run and its effective value is taken from
     the style hierarchy.
     """
+
+    # getting the default style is very expensive, so cache it here
+    _default_style = None
+
     def __init__(self, r, parent):
         super(Run, self).__init__(parent)
         self._r = self._element = self.element = r
@@ -121,6 +128,16 @@ class Run(Parented):
         self.font.italic = value
 
     @property
+    def default_style(self):
+        """
+        Default |_CharacterStyle| (often `Default Character Font`).
+        """
+        if Run._default_style is None:
+            Run._default_style = self.part.get_style(None,
+                                                     WD_STYLE_TYPE.CHARACTER)
+        return Run._default_style
+
+    @property
     def style(self):
         """
         Read/write. A |_CharacterStyle| object representing the character
@@ -182,26 +199,57 @@ class Run(Parented):
     def underline(self, value):
         self.font.underline = value
 
+    @property
+    def markdown(self):
+        # if the child item "markdown" includes any non-strings (e.g.,
+        # this can happen for bookmark references) return a list of this
+        # markdown
+        markdown_lst = [item.markdown for item in self.items]
+        if not all(is_string(m) for m in markdown_lst):
+            return markdown_lst
+
+        # otherwise, build the markdown string
+        text = ''
+
+        # get the character style and the default style
+        style = self.style
+        default_style = self.default_style
+
+        # if not using the default style (or an ignored style), use a span
+        ignored_styles = {'Hyperlink'}
+        use_span = style != default_style and style.name not in ignored_styles
+        if use_span:
+            text += '['
+
+        # handle fixed width, italic and bold
+        # XXX currently assume that fixed width font is 'Courier'
+        # XXX need to support underline via [text]{.underline} or similar
+        cstyle = '{{c}}' if self.font.name is not None and 'courier' in \
+                            self.font.name.lower() else ''
+        cstyle_end = cstyle.replace('{{', '{{end') if cstyle else ''
+        emphasis = ('{{i}}' if self.italic and not self.bold else '') + \
+                   ('{{b}}' if self.bold and not self.italic else '') + \
+                   ('{{B}}' if self.bold and self.italic else '')
+        emphasis_end = emphasis.replace('{{', '{{end') if emphasis else ''
+        payload = ''.join(markdown_lst)
+        # don't apply attributes to "empty" strings (they just cause problems)
+        if payload.strip() == '':
+            text += payload
+        else:
+            text += cstyle + emphasis + payload + emphasis_end + \
+                    cstyle_end
+
+        # if using a span, use a CSS class name derived from the style
+        # XXX should use a utility for this
+        if use_span:
+            text += ']{.%s}' % style.name.lower().replace(' ', '-')
+
+        return text
+
     def __str__(self):
         return self.text
 
     __repr__ = __str__
-
-
-# XXX there isn't an InsText equivalent! could simulate one by checking for
-#     an InsertedRun ancestor, but this isn't necessary if deleted text is
-#     just ignored
-class DeletedText(Parented):
-    """
-    Proxy object wrapping ``<w:delText>`` element.
-    """
-    def __init__(self, t_elm, parent):
-        super(DeletedText, self).__init__(parent)
-        self._t = self._element = t_elm
-
-    @property
-    def markdown(self):
-        return '{{deletedText|%s}}' % self._t.text
 
 
 # XXX changed this from object to Parented
@@ -227,18 +275,16 @@ class _Text(Parented):
     __repr__ = __str__
 
 
-class RunProperties(Parented):
+# XXX there isn't an InsText equivalent! could simulate one by checking for
+#     an InsertedRun ancestor, but this isn't necessary if deleted text is
+#     just ignored
+class DeletedText(_Text):
     """
-    Proxy class for a WordprocessingML ``<w:rPr>`` element.
+    Proxy object wrapping ``<w:delText>`` element.
     """
-    def __init__(self, rp, parent):
-        super(RunProperties, self).__init__(parent)
-        self._rp = self._element = rp
-
     @property
     def markdown(self):
-        return '{{runProperties|%s}}' % self._rp.rStyle.val if \
-            self._rp.rStyle is not None else ''
+        return ''
 
 
 class Break(Parented):
@@ -247,8 +293,37 @@ class Break(Parented):
     """
     def __init__(self, br_elm, parent):
         super(Break, self).__init__(parent)
-        self._br = br_elm
+        self._br = self._element = br_elm
 
     @property
     def markdown(self):
-        return '{{break|%s|%s}}' % (self._br.type, self._br.clear)
+        # handle line breaks here
+        # XXX this is a hack; it suits us for line breaks to be strings
+        if self._br.type in {None, 'textWrapping'}:
+            return '\n'
+        else:
+            return self
+
+    def __str__(self):
+        return '%s' % self._br.type
+
+    def __repr__(self):
+        return '<%s %s>' % (type(self).__name__, str(self))
+
+
+class InsertedRun(Parented):
+    """
+    Proxy object wrapping ``<w:ins>`` element.
+    """
+    def __init__(self, ins_elm, parent):
+        super(InsertedRun, self).__init__(parent)
+        self._element = ins_elm
+
+
+class DeletedRun(Parented):
+    """
+    Proxy object wrapping ``<w:del>`` element.
+    """
+    def __init__(self, del_elm, parent):
+        super(DeletedRun, self).__init__(parent)
+        self._element = del_elm
