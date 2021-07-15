@@ -109,8 +109,14 @@ register_element_cls("w:type", CT_SectType)
 from .settings import CT_Settings  # noqa
 register_element_cls("w:settings", CT_Settings)
 
-from .drawing import CT_Drawing  # noqa
+from .drawing import (  # noqa
+    CT_Drawing,
+    CT_EmbeddedObject,
+    CT_Picture
+)
 register_element_cls("w:drawing", CT_Drawing)
+register_element_cls("w:object", CT_EmbeddedObject)
+register_element_cls("w:pict", CT_Picture)
 
 from .shape import (  # noqa
     CT_Blip,
@@ -224,6 +230,21 @@ register_element_cls('w:u',          CT_Underline)
 register_element_cls('w:vanish',     CT_OnOff)
 register_element_cls('w:vertAlign',  CT_VerticalAlignRun)
 register_element_cls('w:webHidden',  CT_OnOff)
+
+from .notes import (  # noqa
+    CT_Endnotes,
+    CT_Endnote,
+    CT_EndnoteReference,
+    CT_Footnotes,
+    CT_Footnote,
+    CT_FootnoteReference,
+)
+register_element_cls('w:endnotes', CT_Endnotes)
+register_element_cls('w:endnote', CT_Endnote)
+register_element_cls('w:endnoteReference', CT_EndnoteReference)
+register_element_cls('w:footnotes', CT_Footnotes)
+register_element_cls('w:footnote', CT_Footnote)
+register_element_cls('w:footnoteReference', CT_FootnoteReference)
 
 from .text.hyperlink import (  # noqa
     CT_Hyperlink

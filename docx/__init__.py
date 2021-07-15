@@ -15,6 +15,7 @@ from docx.opc.parts.customprops import CustomPropertiesPart
 from docx.parts.document import DocumentPart
 from docx.parts.hdrftr import FooterPart, HeaderPart
 from docx.parts.image import ImagePart
+from docx.parts.notes import EndnotesPart, FootnotesPart
 from docx.parts.numbering import NumberingPart
 from docx.parts.settings import SettingsPart
 from docx.parts.styles import StylesPart
@@ -30,7 +31,9 @@ PartFactory.part_class_selector = part_class_selector
 PartFactory.part_type_for[CT.OPC_CORE_PROPERTIES] = CorePropertiesPart
 PartFactory.part_type_for[CT.OPC_CUSTOM_PROPERTIES] = CustomPropertiesPart
 PartFactory.part_type_for[CT.WML_DOCUMENT_MAIN] = DocumentPart
+PartFactory.part_type_for[CT.WML_ENDNOTES] = EndnotesPart
 PartFactory.part_type_for[CT.WML_FOOTER] = FooterPart
+PartFactory.part_type_for[CT.WML_FOOTNOTES] = FootnotesPart
 PartFactory.part_type_for[CT.WML_HEADER] = HeaderPart
 PartFactory.part_type_for[CT.WML_NUMBERING] = NumberingPart
 PartFactory.part_type_for[CT.WML_SETTINGS] = SettingsPart
@@ -41,7 +44,9 @@ del (
     CorePropertiesPart,
     CustomPropertiesPart,
     DocumentPart,
+    EndnotesPart,
     FooterPart,
+    FootnotesPart,
     HeaderPart,
     NumberingPart,
     PartFactory,
@@ -62,7 +67,7 @@ Ignored.register('mc:AlternateContent')
 Ignored.register('w:commentRangeEnd')
 Ignored.register('w:commentRangeStart')
 Ignored.register('w:commentReference')
-Ignored.register('w:footnoteReference')
+Ignored.register('w:footnoteRef')
 Ignored.register('w:lastRenderedPageBreak')
 Ignored.register('w:noBreakHyphen')
 Ignored.register('w:object')
@@ -77,9 +82,13 @@ Ignored.register('w:tblPr')
 Ignored.register('w:trPr')
 
 from docx.drawing import (  # noqa
-    Drawing
+    Drawing,
+    EmbeddedObject,
+    Picture
 )
 Drawing.register('w:drawing', True)
+EmbeddedObject.register('w:object')
+Picture.register('w:pict')
 
 from docx.table import (  # noqa
     _Cell,
@@ -98,6 +107,11 @@ from docx.text.field import (  # noqa
 FieldChar.register('w:fldChar')
 FieldCode.register('w:instrText')
 SimpleField.register('w:fldSimple')
+
+from docx.notes import (  # noqa
+    FootnoteReference
+)
+FootnoteReference.register('w:footnoteReference')
 
 from docx.text.hyperlink import (  # noqa
     Hyperlink,

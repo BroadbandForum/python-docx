@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from docx.blkcntnr import BlockItemContainer
 from docx.enum.section import WD_SECTION
 from docx.enum.text import WD_BREAK
+from docx.notes import Endnote, Footnote
 from docx.section import Section, Sections
 from docx.shared import ElementProxy, Emu
 
@@ -129,6 +130,16 @@ class Document(ElementProxy):
         return self._body.paragraphs
 
     @property
+    def endnotes(self):
+        return [Endnote(note, self) for note in
+                self._part.endnotes_part.element]
+
+    @property
+    def footnotes(self):
+        return [Footnote(note, self) for note in
+                self._part.footnotes_part.element]
+
+    @property
     def part(self):
         """
         The |DocumentPart| object of this document.
@@ -202,10 +213,7 @@ class Document(ElementProxy):
 
     @property
     def markdown(self):
-        """
-        Document content as markdown.
-        """
-        return '<document>'
+        return ''
 
 
 class _Body(BlockItemContainer):
@@ -228,4 +236,4 @@ class _Body(BlockItemContainer):
 
     @property
     def markdown(self):
-        return '<body>'
+        return ''

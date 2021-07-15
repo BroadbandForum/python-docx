@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from docx.document import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.parts.hdrftr import FooterPart, HeaderPart
+from docx.parts.notes import EndnotesPart, FootnotesPart
 from docx.parts.numbering import NumberingPart
 from docx.parts.settings import SettingsPart
 from docx.parts.story import BaseStoryPart
@@ -24,11 +25,24 @@ class DocumentPart(BaseStoryPart):
     objects provides access to this part object for that purpose.
     """
 
+    def add_endnotes_part(self):
+        """Return (endnotes_part, rId) pair for newly-created endnotes part."""
+        endnotes_part = EndnotesPart.new(self.package)
+        rId = self.relate_to(endnotes_part, RT.ENDNOTES)
+        return endnotes_part, rId
+
     def add_footer_part(self):
         """Return (footer_part, rId) pair for newly-created footer part."""
         footer_part = FooterPart.new(self.package)
         rId = self.relate_to(footer_part, RT.FOOTER)
         return footer_part, rId
+
+    def add_footnotes_part(self):
+        """Return (footnotes_part, rId) pair for newly-created footnotes
+        part."""
+        footnotes_part = FootnotesPart.new(self.package)
+        rId = self.relate_to(footnotes_part, RT.FOOTNOTES)
+        return footnotes_part, rId
 
     def add_header_part(self):
         """Return (header_part, rId) pair for newly-created header part."""
@@ -96,6 +110,32 @@ class DocumentPart(BaseStoryPart):
         document.
         """
         return InlineShapes(self._element.body, self)
+
+    @lazyproperty
+    def endnotes_part(self):
+        """
+        An |EndnotesPart| object providing access to the endnotes for this
+        document. Creates an empty endnotes part if one is not present.
+        """
+        try:
+            return self.part_related_by(RT.ENDNOTES)
+        except KeyError:
+            endnotes_part = EndnotesPart.new()
+            self.relate_to(endnotes_part, RT.ENDNOTES)
+            return endnotes_part
+
+    @lazyproperty
+    def footnotes_part(self):
+        """
+        An |FootnotesPart| object providing access to the footnotes for this
+        document. Creates an empty footnotes part if one is not present.
+        """
+        try:
+            return self.part_related_by(RT.FOOTNOTES)
+        except KeyError:
+            footnotes_part = FootnotesPart.new()
+            self.relate_to(footnotes_part, RT.FOOTNOTES)
+            return footnotes_part
 
     @lazyproperty
     def numbering_part(self):

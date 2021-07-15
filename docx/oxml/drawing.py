@@ -7,7 +7,7 @@ from __future__ import (
 )
 
 from .xmlchemy import (
-    BaseOxmlElement, ZeroOrOne
+    BaseOxmlElement, OneAndOnlyOne, ZeroOrOne
 )
 
 
@@ -16,3 +16,16 @@ class CT_Drawing(BaseOxmlElement):
     ``<w:drawing>`` element.
     """
     inline = ZeroOrOne('wp:inline')
+
+
+class CT_EmbeddedObject(BaseOxmlElement):
+    """
+    ``<w:object>`` element.
+    """
+    ole_object = OneAndOnlyOne('o:OLEObject')
+
+
+class CT_Picture(BaseOxmlElement):
+    """
+    ``<w:pict>`` element.
+    """

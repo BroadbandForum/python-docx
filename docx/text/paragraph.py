@@ -12,7 +12,7 @@ import re
 
 from ..compat import is_string
 from ..enum.style import WD_STYLE_TYPE
-from .field import FieldChar, FieldCode
+from .field import FieldChar, FieldCode, SimpleField
 from .parfmt import BookmarkEnd, BookmarkStart, ParagraphFormat
 from .run import Break, Run
 from ..shared import Parented
@@ -211,11 +211,26 @@ class Paragraph(Parented):
                     field_code = val
                     # XXX temporary; need an improved interface
                     words += field_code._element.text.strip().split()
-                    if len(words) > 1 and words[0] == 'REF' and anchor is None:
-                        if not added_open_bracket:
-                            text += '['
-                            added_open_bracket = True
-                        anchor = '{{ref|%s}}' % words[1]
+                    if len(words) <= 1:
+                        pass
+                    elif words[0] == 'DOCPROPERTY':
+                        # 'begin' text is preferred to 'separate' text
+                        # XXX this is copied from string handling below
+                        # XXX this isn't supporting MERGEFORMAT or text
+                        #     formatting (which is down at the run level)
+                        if state in {'outer', 'begin', 'separate', 'end'}:
+                            if state != 'separate' or not added_begin_text:
+                                name = re.sub(r'^"|"$', '', words[1])
+                                text += '%%%s%%' % SimpleField.mapname(name)
+                            if state == 'begin':
+                                added_begin_text = True
+                    elif words[0] == 'REF':
+                        if anchor is None:
+                            if not added_open_bracket:
+                                text += '['
+                                added_open_bracket = True
+                            anchor = '{{ref|%s}}' % words[1]
+                    # XXX and the rest?
                 elif isinstance(val, BookmarkStart):
                     bookmarks += [val]
                     # XXX can't do this unconditionally; there are too many
@@ -272,9 +287,11 @@ class Paragraph(Parented):
         first_line_indent = self.paragraph_format.first_line_indent or \
                             self.style.paragraph_format.first_line_indent or 0
         total_indent = left_indent + first_line_indent
-        # XXX the 50 here means about 20 spaces per inch; this is heuristic
-        spaces = int(total_indent/1440/50)
-        indent = '{{indent=%d}}' % spaces if spaces else ''
+        # XXX the 50 here means about 20 spaces per inch; this is heuristic;
+        #     the 4.00/6.35 is further heuristic to cause tabs and indent to
+        #     be about the same, at least in one case
+        spaces = int((total_indent/1440/50) * (4.00/6.35) + 0.5)
+        indent = '{{indent=%r}}' % spaces if spaces else ''
 
         # naively indent 'Code' etc. paragraphs
         # XXX this makes assumptions about style names
@@ -318,7 +335,7 @@ class Paragraph(Parented):
         # XXX may also want to transform 'Section [n]' to '[Section n]' etc.?
         if style_name in {'caption'}:
             text = re.sub(r'Figure \d*(?:%\w+%)?\d*\W+(.*)',
-                          r'![\1](images/missing.png)', text)
+                          r'![\1](missing.png)', text)
             text = re.sub(r'Table \d*%\w+%\d*\W+', r':', text)
 
         # if a page break was seen, insert it at the beginning
@@ -349,9 +366,9 @@ class Paragraph(Parented):
 
         # ignore empty paragraphs (people abuse them as an alternative to
         # "after paragraph space")
-        # XXX it's a bit messy to have to deal with the fact that spaces might
-        #     have been escaped
-        elif re.sub(r'{{indent=\d+}}|{{tab}}', r'', text).strip() == '':
+        # XXX it's a bit messy to have to deal with the fact that {{xxx=n}} or
+        #     {{yyy}} might have been inserted
+        elif re.sub(r'{{\w+(=.+?)?}}\s*', r'', text).strip() == '':
             text = None
 
         return text

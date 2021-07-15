@@ -31,7 +31,7 @@ class SimpleField(Parented):
         if words[0] == 'DOCPROPERTY':
             assert len(words) > 1
             name = re.sub(r'^"|"$', '', words[1])
-            value = '%%%s%%' % self.mapname(name)
+            text = '%%%s%%' % self.mapname(name)
 
         # sequence number: second word is the counter
         # example: SEQ Table \* ARABIC
@@ -44,16 +44,16 @@ class SimpleField(Parented):
         elif words[0] == 'SEQ':
             assert len(words) > 1
             name = words[1]
-            value = '%%%s%%' % self.mapname(name, prefix='docx-seq-')
+            text = '%%%s%%' % self.mapname(name, prefix='docx-seq-')
 
         # otherwise assume core property
         # example: AUTHOR  \* MERGEFORMAT
         else:
             name = words[0].lower()
-            value = '%%%s%%' % self.mapname(name, prefix='docx-')
+            text = '%%%s%%' % self.mapname(name, prefix='docx-')
 
         # this is a metadata variable reference (not the field value)
-        return value
+        return text
 
     @staticmethod
     def mapname(name, prefix=''):

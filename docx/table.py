@@ -209,8 +209,7 @@ class Table(Parented):
         |    1  |    1 |     1   |     1  |
 
         (Leading and trailing pipe characters are optional, and are omitted.)
-        # XXX need to think about escaping, and about "flattening" any
-        #     block content, e.g. lists, within rows
+        # XXX not yet supporting right/left/center justification
         # XXX should intercept some tables and use built-in BBF div tables
         """
         # determine whether the first row is a header row (only check this for
@@ -248,9 +247,10 @@ class Table(Parented):
         # iterate through rows
         for row_num, row in enumerate(self.rows):
             row_text = ''
-            for cell_num, cell in enumerate(row.cells):
-                row_text += '| %s ' % cell.markdown.strip().replace('\n',
-                                                                    '\\\n')
+            for col_num, cell in enumerate(row.cells):
+                width = widths[col_num]
+                fmt = '| %%-%ds ' % max(width - 2, 0)
+                row_text += fmt % cell.markdown.strip().replace('\n', '\\\n')
             table_text += row_text.strip() + '\n'
             if has_header_row and row_num == 0:
                 for col_num in range(num_cols):

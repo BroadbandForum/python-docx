@@ -6,8 +6,6 @@ Run-related proxy objects for python-docx, Run in particular.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-import re
-
 from ..compat import is_string
 from ..enum.style import WD_STYLE_TYPE
 from ..enum.text import WD_BREAK
@@ -216,7 +214,7 @@ class Run(Parented):
         default_style = self.default_style
 
         # if not using the default style (or an ignored style), use a span
-        ignored_styles = {'Hyperlink'}
+        ignored_styles = {'footnote reference', 'Hyperlink'}
         use_span = style != default_style and style.name not in ignored_styles
         if use_span:
             text += '['
@@ -257,7 +255,7 @@ class _Text(Parented):
     """
     Proxy object wrapping ``<w:t>`` element.
     """
-    def __init__(self, t_elm, parent):
+    def __init__(self, t_elm, parent=None):
         super(_Text, self).__init__(parent)
         self._t = self._element = t_elm
 
@@ -267,7 +265,15 @@ class _Text(Parented):
 
     @property
     def markdown(self):
-        return self._t.text
+        # XXX PyCharm complains about duplicate keys here?! but it seems to
+        #     work
+        # XXX should I be worried about efficiency here?
+        quote_map = {"\N{LEFT SINGLE QUOTATION MARK}": "'",
+                     "\N{RIGHT SINGLE QUOTATION MARK}": "'",
+                     "\N{LEFT DOUBLE QUOTATION MARK}": '"',
+                     "\N{RIGHT DOUBLE QUOTATION MARK}": '"'}
+        text = ''.join(quote_map.get(c, c) for c in self._t.text)
+        return text
 
     def __str__(self):
         return self.text
